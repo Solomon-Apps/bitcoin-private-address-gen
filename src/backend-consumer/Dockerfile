@@ -1,8 +1,5 @@
 FROM golang:1.21
 
-# Install build dependencies
-RUN apk add --no-cache git gcc musl-dev make
-
 # Set working directory
 WORKDIR /app
 
