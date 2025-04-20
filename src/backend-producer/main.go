@@ -10,6 +10,7 @@ import (
 	"strconv"
 
 	amqp "github.com/rabbitmq/amqp091-go"
+	"github.com/rs/cors"
 )
 
 type JobRequest struct {
@@ -145,8 +146,21 @@ func handleLive(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
-	http.HandleFunc("/", handleLive)
-	http.HandleFunc("/jobs", handleJobs)
+	// Create CORS handler
+	c := cors.New(cors.Options{
+		AllowedOrigins:   []string{"*"}, // Allow all origins
+		AllowedMethods:   []string{"GET", "POST", "OPTIONS"},
+		AllowedHeaders:   []string{"Content-Type"},
+		AllowCredentials: true,
+	})
+
+	// Create router
+	mux := http.NewServeMux()
+	mux.HandleFunc("/", handleLive)
+	mux.HandleFunc("/jobs", handleJobs)
+
+	// Wrap the router with CORS
+	handler := c.Handler(mux)
 
 	port := os.Getenv("PORT")
 	if port == "" {
@@ -154,5 +168,5 @@ func main() {
 	}
 
 	log.Printf("Server starting on port %s", port)
-	log.Fatal(http.ListenAndServe(":"+port, nil))
+	log.Fatal(http.ListenAndServe(":"+port, handler))
 }
