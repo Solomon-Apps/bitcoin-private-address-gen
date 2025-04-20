@@ -67,6 +67,16 @@ func runKeyhunt(job Job, wg *sync.WaitGroup, ch *amqp.Channel) {
 		}
 	}
 
+	// Try to run keyhunt with --help to test if it works
+	testCmd := exec.Command(keyhuntPath, "-h")
+	if testOutput, err := testCmd.CombinedOutput(); err != nil {
+		fmt.Printf("Keyhunt test failed: %v\n", err)
+		fmt.Printf("Test output: %s\n", string(testOutput))
+		return
+	} else {
+		fmt.Printf("Keyhunt test successful. Output: %s\n", string(testOutput))
+	}
+
 	// Write addresses to file
 	err = writeAddressesToFile(job.Addresses)
 	if err != nil {

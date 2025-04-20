@@ -1,4 +1,4 @@
-FROM golang:1.21-alpine
+FROM golang:1.21
 
 # Install build dependencies
 RUN apk add --no-cache git gcc musl-dev make
@@ -15,7 +15,14 @@ RUN go mod download
 # Copy source code
 COPY . .
 
-RUN chmod +x keyhunt
+# Check binary compatibility and dependencies
+RUN chmod +x keyhunt && \
+    echo "=== File information ===" && \
+    file keyhunt && \
+    echo "=== Dependencies ===" && \
+    ldd keyhunt || true && \
+    echo "=== Binary check ===" && \
+    ./keyhunt -h || true
 
 # Build the application
 RUN go build -o main .
