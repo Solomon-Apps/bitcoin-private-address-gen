@@ -121,7 +121,7 @@ func main() {
 	}
 
 	// Check keyhunt binary
-	keyhuntPath := "/app/keyhunt"
+	keyhuntPath := "/usr/local/bin/keyhunt"
 	if fileInfo, err := os.Stat(keyhuntPath); err != nil {
 		fmt.Printf("Keyhunt binary not found at startup: %v\n", err)
 	} else {
