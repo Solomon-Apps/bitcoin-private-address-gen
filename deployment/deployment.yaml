@@ -25,7 +25,7 @@ spec:
           image: 192.168.1.103/bitcoin-frontend:latest
           imagePullPolicy: Always
           ports:
-            - containerPort: 5000\
+            - containerPort: 5000
           env:
             - name: RABBITMQ_URL
               valueFrom:
@@ -41,7 +41,6 @@ spec:
             name: bitcoin-private-address-gen
 
 ---
-
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -65,7 +64,7 @@ spec:
         app: backend-producer
     spec:
       containers:
-        - name: backend-producer  
+        - name: backend-producer
           image: 192.168.1.103/bitcoin-backend-producer:latest
           imagePullPolicy: Always
           ports:
@@ -85,7 +84,6 @@ spec:
             name: bitcoin-private-address-gen
 
 ---
-
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -101,7 +99,7 @@ spec:
   strategy:
     type: RollingUpdate
     rollingUpdate:
-      maxSurge: 1 
+      maxSurge: 1
       maxUnavailable: 0
   template:
     metadata:
@@ -124,4 +122,4 @@ spec:
       volumes:
         - name: config-volume
           configMap:
-            name: bitcoin-private-address-gen     
+            name: bitcoin-private-address-gen
