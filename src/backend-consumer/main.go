@@ -44,8 +44,27 @@ func writeAddressesToFile(addresses []string) error {
 func runKeyhunt(job Job, wg *sync.WaitGroup, ch *amqp.Channel) {
 	defer wg.Done()
 
+	// Print working directory
+	wd, err := os.Getwd()
+	if err != nil {
+		fmt.Printf("Error getting working directory: %v\n", err)
+	} else {
+		fmt.Printf("Current working directory: %s\n", wd)
+	}
+
+	// List directory contents
+	files, err := os.ReadDir(".")
+	if err != nil {
+		fmt.Printf("Error reading directory: %v\n", err)
+	} else {
+		fmt.Println("Directory contents:")
+		for _, file := range files {
+			fmt.Printf("- %s\n", file.Name())
+		}
+	}
+
 	// Write addresses to file
-	err := writeAddressesToFile(job.Addresses)
+	err = writeAddressesToFile(job.Addresses)
 	if err != nil {
 		fmt.Printf("Error writing addresses: %v\n", err)
 		return
@@ -92,6 +111,25 @@ func runKeyhunt(job Job, wg *sync.WaitGroup, ch *amqp.Channel) {
 }
 
 func main() {
+	// Print working directory at startup
+	wd, err := os.Getwd()
+	if err != nil {
+		fmt.Printf("Error getting working directory: %v\n", err)
+	} else {
+		fmt.Printf("Starting in directory: %s\n", wd)
+	}
+
+	// List directory contents at startup
+	files, err := os.ReadDir(".")
+	if err != nil {
+		fmt.Printf("Error reading directory: %v\n", err)
+	} else {
+		fmt.Println("Initial directory contents:")
+		for _, file := range files {
+			fmt.Printf("- %s\n", file.Name())
+		}
+	}
+
 	// Get RabbitMQ URL from environment variable
 	rabbitMQURL := os.Getenv("RABBITMQ_URL")
 	if rabbitMQURL == "" {
