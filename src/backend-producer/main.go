@@ -5,9 +5,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"math/big"
 	"net/http"
 	"os"
-	"strconv"
+	"strings"
 
 	amqp "github.com/rabbitmq/amqp091-go"
 	"github.com/rs/cors"
@@ -52,29 +53,62 @@ func sendJobToQueue(ch *amqp.Channel, job Job) error {
 	return err
 }
 
-func createJobs(startRange, endRange string, address string) ([]Job, error) {
-	start, err := strconv.ParseInt(startRange, 10, 64)
-	if err != nil {
-		return nil, err
+func parseNumber(input string) (*big.Int, error) {
+	input = strings.TrimSpace(input)
+
+	// Check if it's a hex number (starts with 0x or contains non-decimal characters)
+	if strings.HasPrefix(input, "0x") || strings.ContainsAny(input, "abcdefABCDEF") {
+		// Remove 0x prefix if present
+		input = strings.TrimPrefix(input, "0x")
+		num := new(big.Int)
+		_, success := num.SetString(input, 16)
+		if !success {
+			return nil, fmt.Errorf("invalid hex number: %s", input)
+		}
+		return num, nil
 	}
 
-	end, err := strconv.ParseInt(endRange, 10, 64)
+	// Try parsing as decimal
+	num := new(big.Int)
+	_, success := num.SetString(input, 10)
+	if !success {
+		return nil, fmt.Errorf("invalid decimal number: %s", input)
+	}
+	return num, nil
+}
+
+func createJobs(startRange, endRange string, address string) ([]Job, error) {
+	start, err := parseNumber(startRange)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("invalid start range: %v", err)
+	}
+
+	end, err := parseNumber(endRange)
+	if err != nil {
+		return nil, fmt.Errorf("invalid end range: %v", err)
+	}
+
+	if start.Cmp(end) >= 0 {
+		return nil, fmt.Errorf("start range must be less than end range")
 	}
 
 	var jobs []Job
-	for i := start; i < end; i += batchSize {
-		batchEnd := i + batchSize
-		if batchEnd > end {
+	batchSizeBig := big.NewInt(batchSize)
+	current := new(big.Int).Set(start)
+
+	for current.Cmp(end) < 0 {
+		batchEnd := new(big.Int).Add(current, batchSizeBig)
+		if batchEnd.Cmp(end) > 0 {
 			batchEnd = end
 		}
 
 		jobs = append(jobs, Job{
-			StartRange: fmt.Sprintf("%d", i),
-			EndRange:   fmt.Sprintf("%d", batchEnd),
+			StartRange: current.String(),
+			EndRange:   batchEnd.String(),
 			Addresses:  []string{address},
 		})
+
+		current = batchEnd
 	}
 
 	return jobs, nil
