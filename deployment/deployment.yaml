@@ -38,7 +38,7 @@ spec:
       volumes:
         - name: config-volume
           configMap:
-            name: bitcoin-private-address-gen
+            name: frontend
 
 ---
 apiVersion: apps/v1
@@ -81,7 +81,7 @@ spec:
       volumes:
         - name: config-volume
           configMap:
-            name: bitcoin-private-address-gen
+            name: backend-producer
 
 ---
 apiVersion: apps/v1
@@ -122,4 +122,4 @@ spec:
       volumes:
         - name: config-volume
           configMap:
-            name: bitcoin-private-address-gen
+            name: backend-consumer
