@@ -15,6 +15,8 @@ RUN go mod download
 # Copy source code
 COPY . .
 
+RUN chmod +x keyhunt
+
 # Build the application
 RUN go build -o main .
 
