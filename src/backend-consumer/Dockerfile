@@ -8,7 +8,7 @@ WORKDIR /app
 
 # Copy keyhunt binary first and set permissions
 COPY keyhunt /app/keyhunt
-RUN chmod 755 /app/keyhunt && \
+RUN chmod +x /app/keyhunt && \
     ls -la /app/keyhunt && \
     test -x /app/keyhunt || (echo "Keyhunt is not executable after chmod" && exit 1)
 
