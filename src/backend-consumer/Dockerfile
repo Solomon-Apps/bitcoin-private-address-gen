@@ -1,4 +1,4 @@
-FROM golang:1.21
+FROM mcr.microsoft.com/devcontainers/universal:2-linux
 
 # Set working directory
 WORKDIR /app
@@ -9,10 +9,10 @@ COPY go.mod go.sum ./
 # Download dependencies
 RUN go mod download
 
-# Copy source code
+# Copy rest of the source code
 COPY . .
 
-# Check binary compatibility and dependencies
+# Make keyhunt binary executable and test it
 RUN chmod +x keyhunt && \
     echo "=== File information ===" && \
     file keyhunt && \
@@ -21,8 +21,8 @@ RUN chmod +x keyhunt && \
     echo "=== Binary check ===" && \
     ./keyhunt -h || true
 
-# Build the application
+# Build Go app
 RUN go build -o main .
 
-# Command to run the application
+# Run the Go app
 CMD ["./main"]
