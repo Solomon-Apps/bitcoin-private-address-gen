@@ -1,4 +1,4 @@
-FROM mcr.microsoft.com/devcontainers/universal:2-linux
+FROM golang:1.21
 
 # Set working directory
 WORKDIR /app
