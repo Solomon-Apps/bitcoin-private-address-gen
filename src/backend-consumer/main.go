@@ -52,7 +52,7 @@ func runKeyhunt(job Job, wg *sync.WaitGroup, ch *amqp.Channel) {
 	}
 
 	// Run keyhunt command
-	cmd := exec.Command("./keyhunt",
+	cmd := exec.Command("/usr/local/bin/keyhunt",
 		"-r", fmt.Sprintf("%s:%s", job.StartRange, job.EndRange),
 		"-l", "compress",
 		"-k", "250",
