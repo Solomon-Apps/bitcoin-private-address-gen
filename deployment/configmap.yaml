@@ -9,7 +9,7 @@ data:
       "environment" : "dev"
     }
   
---
+---
 
 apiVersion: v1
 kind: ConfigMap
@@ -22,7 +22,7 @@ data:
       "environment" : "dev"
     }
 
---
+---
 
 apiVersion: v1
 kind: ConfigMap
