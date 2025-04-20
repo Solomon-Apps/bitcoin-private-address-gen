@@ -16,3 +16,24 @@ spec:
                 name: frontend
                 port:
                   number: 80
+
+---
+
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: bitcoin-private-address-gen-api-ingress
+  namespace: default
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: api.bitcoin-gen.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: backend-producer
+                port:
+                  number: 80
