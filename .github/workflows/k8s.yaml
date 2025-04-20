@@ -71,6 +71,7 @@ jobs:
       - name: "Delete Bitcoin Private Address Gen Secret"
         uses: actions-hub/kubectl@master
         if: github.event_name == 'push'
+        continue-on-error: true
         with:
           args: |
             delete secret bitcoin-private-address-gen-secret
