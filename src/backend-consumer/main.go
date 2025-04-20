@@ -53,7 +53,7 @@ func runKeyhunt(job Job, wg *sync.WaitGroup, ch *amqp.Channel) {
 	}
 
 	// Use absolute path for keyhunt
-	keyhuntPath := "/app/keyhunt"
+	keyhuntPath := "./keyhunt"
 
 	// Check if keyhunt exists and is executable
 	if fileInfo, err := os.Stat(keyhuntPath); err != nil {

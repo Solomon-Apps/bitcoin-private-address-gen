@@ -26,7 +26,7 @@ type Job struct {
 	Addresses  []string `json:"addresses"`
 }
 
-const batchSize = 50000000
+const batchSize = 20000000000000
 
 func failOnError(err error, msg string) {
 	if err != nil {
