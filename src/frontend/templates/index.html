@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bitcoin Address Generator</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .task-card,
+        .result-card {
+            margin-bottom: 1rem;
+        }
+
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container mt-4">
+        <h1>Bitcoin Address Generator</h1>
+
+        <!-- Task Form -->
+        <div class="card mb-4">
+            <div class="card-body">
+                <h5 class="card-title">New Task</h5>
+                <form id="taskForm">
+                    <div class="mb-3">
+                        <label for="startRange" class="form-label">Start Range</label>
+                        <input type="text" class="form-control" id="startRange" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="endRange" class="form-label">End Range</label>
+                        <input type="text" class="form-control" id="endRange" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="address" class="form-label">Bitcoin Address</label>
+                        <input type="text" class="form-control" id="address" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Submit Task</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Active Tasks -->
+        <div class="card mb-4">
+            <div class="card-body">
+                <h5 class="card-title">Active Tasks</h5>
+                <div id="tasksList"></div>
+            </div>
+        </div>
+
+        <!-- Results -->
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">Results</h5>
+                <div id="resultsList"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Local Storage Keys
+        const TASKS_KEY = 'bitcoin_tasks';
+        const RESULTS_KEY = 'bitcoin_results';
+
+        // Initialize local storage if empty
+        if (!localStorage.getItem(TASKS_KEY)) {
+            localStorage.setItem(TASKS_KEY, JSON.stringify([]));
+        }
+        if (!localStorage.getItem(RESULTS_KEY)) {
+            localStorage.setItem(RESULTS_KEY, JSON.stringify([]));
+        }
+
+        // DOM Elements
+        const taskForm = document.getElementById('taskForm');
+        const tasksList = document.getElementById('tasksList');
+        const resultsList = document.getElementById('resultsList');
+
+        // Load tasks and results on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            loadTasks();
+            loadResults();
+            startResultsPolling();
+        });
+
+        // Handle form submission
+        taskForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const task = {
+                startRange: document.getElementById('startRange').value,
+                endRange: document.getElementById('endRange').value,
+                address: document.getElementById('address').value
+            };
+
+            try {
+                const response = await fetch('http://backend-producer:5000/jobs', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(task)
+                });
+
+                if (response.ok) {
+                    // Add task to local storage
+                    const tasks = JSON.parse(localStorage.getItem(TASKS_KEY));
+                    tasks.push(task);
+                    localStorage.setItem(TASKS_KEY, JSON.stringify(tasks));
+
+                    // Update UI
+                    loadTasks();
+
+                    // Clear form
+                    taskForm.reset();
+                }
+            } catch (error) {
+                console.error('Error submitting task:', error);
+            }
+        });
+
+        // Load tasks from local storage
+        function loadTasks() {
+            const tasks = JSON.parse(localStorage.getItem(TASKS_KEY));
+            tasksList.innerHTML = tasks.map((task, index) => `
+                <div class="card task-card">
+                    <div class="card-body">
+                        <h6 class="card-subtitle mb-2 text-muted">Task ${index + 1}</h6>
+                        <p class="card-text">
+                            Range: ${task.startRange} - ${task.endRange}<br>
+                            Address: ${task.address}
+                        </p>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Load results from local storage
+        function loadResults() {
+            const results = JSON.parse(localStorage.getItem(RESULTS_KEY));
+            resultsList.innerHTML = results.map((result, index) => `
+                <div class="card result-card">
+                    <div class="card-body">
+                        <h6 class="card-subtitle mb-2 text-muted">Result ${index + 1}</h6>
+                        <pre class="card-text">${result}</pre>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Poll for new results
+        function startResultsPolling() {
+            setInterval(async () => {
+                try {
+                    const response = await fetch('/api/results');
+                    const newResults = await response.json();
+
+                    if (newResults.length > 0) {
+                        const results = JSON.parse(localStorage.getItem(RESULTS_KEY));
+                        results.push(...newResults);
+                        localStorage.setItem(RESULTS_KEY, JSON.stringify(results));
+                        loadResults();
+
+                        // Purge the queue after storing results
+                        try {
+                            await fetch('/api/purge-queue', {
+                                method: 'POST'
+                            });
+                        } catch (error) {
+                            console.error('Error purging queue:', error);
+                        }
+                    }
+                } catch (error) {
+                    console.error('Error fetching results:', error);
+                }
+            }, 5000); // Poll every 5 seconds
+        }
+    </script>
+</body>
+
+</html>

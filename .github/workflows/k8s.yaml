@@ -1,0 +1,98 @@
+name: "Deploy Bitcoin Private Address Gen"
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+jobs:
+  docker:
+    name: "Deploy Bitcoin Private Address Gen"
+    runs-on: self-hosted
+    environment: "Docker"
+    env:
+      DOCKER_TLS_VERIFY: ""
+      DOCKER_BUILDKIT: 1
+      DOCKER_CLI_EXPERIMENTAL: enabled
+      KUBE_CONFIG: ${{ secrets.KUBE_CONFIG }}
+
+    steps:
+      - name: "Checkout"
+        uses: actions/checkout@v4
+
+      - name: "Set up Docker Buildx"
+        uses: docker/setup-buildx-action@v3
+        with:
+          driver-opts: |
+            network=host
+          buildkitd-config-inline: |
+            insecure-registries = ["${{ vars.REGISTRY_HOST }}"]
+            [registry."${{ vars.REGISTRY_HOST }}"]
+              http = false
+              insecure = true
+
+      - name: "Build and Push Frontend"
+        uses: docker/build-push-action@v5
+        with:
+          context: ./src/frontend
+          file: ./src/frontend/Dockerfile
+          push: ${{ github.event_name == 'push' }}
+          tags: |
+            ${{ vars.REGISTRY_HOST }}/bitcoin-frontend:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          platforms: linux/amd64
+
+      - name: "Build and Push Backend Producer"
+        uses: docker/build-push-action@v5
+        with:
+          context: ./src/backend-producer
+          file: ./src/backend-producer/Dockerfile
+          push: ${{ github.event_name == 'push' }}
+          tags: |
+            ${{ vars.REGISTRY_HOST }}/bitcoin-backend-producer:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          platforms: linux/amd64
+
+      - name: "Build and Push Backend Consumer"
+        uses: docker/build-push-action@v5
+        with:
+          context: ./src/backend-consumer
+          file: ./src/backend-consumer/Dockerfile
+          push: ${{ github.event_name == 'push' }}
+          tags: |
+            ${{ vars.REGISTRY_HOST }}/bitcoin-backend-consumer:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          platforms: linux/amd64
+
+      - name: "Delete Bitcoin Private Address Gen Secret"
+        uses: actions-hub/kubectl@master
+        if: github.event_name == 'push'
+        with:
+          args: |
+            delete secret bitcoin-private-address-gen-secret
+
+      # Step to create Kubernetes secret for Bitcoin Private Address Gen credentials
+      - name: "Create Bitcoin Private Address Gen Secret"
+        uses: actions-hub/kubectl@master
+        if: github.event_name == 'push'
+        with:
+          args: |
+            create secret generic bitcoin-private-address-gen-secret -n default --from-literal=RABBITMQ_URL=${{ secrets.RABBITMQ_URL }} --insecure-skip-tls-verify
+
+      # Step for Dry Run Deploy to K8s (for PRs)
+      - name: "Dry Run Deploy to K8s"
+        uses: actions-hub/kubectl@master
+        if: github.event_name == 'pull_request'
+        with:
+          args: apply -f deployment/ --dry-run=client
+
+      # Step for Deploying Bitcoin Private Address Gen to Kubernetes (on push)
+      - name: "Deploy to K8s"
+        uses: actions-hub/kubectl@master
+        if: github.event_name == 'push'
+        with:
+          args: apply -f deployment/
