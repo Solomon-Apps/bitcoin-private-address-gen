@@ -51,8 +51,15 @@ func runKeyhunt(job Job, wg *sync.WaitGroup, ch *amqp.Channel) {
 		return
 	}
 
+	// Get the absolute path to keyhunt
+	keyhuntPath := "./keyhunt"
+	if _, err := os.Stat(keyhuntPath); os.IsNotExist(err) {
+		fmt.Printf("Keyhunt binary not found at %s\n", keyhuntPath)
+		return
+	}
+
 	// Run keyhunt command
-	cmd := exec.Command("/usr/local/bin/keyhunt",
+	cmd := exec.Command(keyhuntPath,
 		"-r", fmt.Sprintf("%s:%s", job.StartRange, job.EndRange),
 		"-l", "compress",
 		"-k", "250",
