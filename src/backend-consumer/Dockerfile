@@ -6,15 +6,19 @@ RUN apk add --no-cache git gcc musl-dev make
 # Set working directory
 WORKDIR /app
 
+# Copy keyhunt binary first and set permissions
+COPY keyhunt /app/keyhunt
+RUN chmod 755 /app/keyhunt && \
+    ls -la /app/keyhunt
+
 # Copy go mod and sum files
 COPY go.mod go.sum ./
 
 # Download dependencies
 RUN go mod download
 
-# Copy source code and keyhunt
+# Copy source code
 COPY . .
-RUN chmod +x keyhunt
 
 # Build the application
 RUN go build -o main .

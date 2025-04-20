@@ -44,7 +44,7 @@ func writeAddressesToFile(addresses []string) error {
 func runKeyhunt(job Job, wg *sync.WaitGroup, ch *amqp.Channel) {
 	defer wg.Done()
 
-	// Print working directory
+	// Print working directory and keyhunt path
 	wd, err := os.Getwd()
 	if err != nil {
 		fmt.Printf("Error getting working directory: %v\n", err)
@@ -52,14 +52,18 @@ func runKeyhunt(job Job, wg *sync.WaitGroup, ch *amqp.Channel) {
 		fmt.Printf("Current working directory: %s\n", wd)
 	}
 
-	// List directory contents
-	files, err := os.ReadDir(".")
-	if err != nil {
-		fmt.Printf("Error reading directory: %v\n", err)
+	// Use absolute path for keyhunt
+	keyhuntPath := "/app/keyhunt"
+
+	// Check if keyhunt exists and is executable
+	if fileInfo, err := os.Stat(keyhuntPath); err != nil {
+		fmt.Printf("Keyhunt binary not found at %s: %v\n", keyhuntPath, err)
+		return
 	} else {
-		fmt.Println("Directory contents:")
-		for _, file := range files {
-			fmt.Printf("- %s\n", file.Name())
+		fmt.Printf("Keyhunt binary found. Size: %d bytes, Mode: %v\n", fileInfo.Size(), fileInfo.Mode())
+		if fileInfo.Mode()&0111 == 0 {
+			fmt.Printf("Keyhunt binary is not executable. Current permissions: %v\n", fileInfo.Mode())
+			return
 		}
 	}
 
@@ -67,13 +71,6 @@ func runKeyhunt(job Job, wg *sync.WaitGroup, ch *amqp.Channel) {
 	err = writeAddressesToFile(job.Addresses)
 	if err != nil {
 		fmt.Printf("Error writing addresses: %v\n", err)
-		return
-	}
-
-	// Get the absolute path to keyhunt
-	keyhuntPath := "./keyhunt"
-	if _, err := os.Stat(keyhuntPath); os.IsNotExist(err) {
-		fmt.Printf("Keyhunt binary not found at %s\n", keyhuntPath)
 		return
 	}
 
@@ -86,9 +83,13 @@ func runKeyhunt(job Job, wg *sync.WaitGroup, ch *amqp.Channel) {
 		"-t", "4",
 		"-B", "sequential")
 
+	// Print the full command
+	fmt.Printf("Executing command: %v\n", cmd.Args)
+
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		fmt.Printf("Error running keyhunt: %v\n", err)
+		fmt.Printf("Command output: %s\n", string(output))
 		return
 	}
 
@@ -119,15 +120,12 @@ func main() {
 		fmt.Printf("Starting in directory: %s\n", wd)
 	}
 
-	// List directory contents at startup
-	files, err := os.ReadDir(".")
-	if err != nil {
-		fmt.Printf("Error reading directory: %v\n", err)
+	// Check keyhunt binary
+	keyhuntPath := "/app/keyhunt"
+	if fileInfo, err := os.Stat(keyhuntPath); err != nil {
+		fmt.Printf("Keyhunt binary not found at startup: %v\n", err)
 	} else {
-		fmt.Println("Initial directory contents:")
-		for _, file := range files {
-			fmt.Printf("- %s\n", file.Name())
-		}
+		fmt.Printf("Keyhunt binary found at startup. Size: %d bytes, Mode: %v\n", fileInfo.Size(), fileInfo.Mode())
 	}
 
 	// Get RabbitMQ URL from environment variable
