@@ -22,10 +22,12 @@ RUN cp -f keyhunt.cpp ./keyhunt/keyhunt.cpp
 RUN cd ./keyhunt && make
 
 # Copy the keyhunt binary to the app folder
-RUN cp ./keyhunt/keyhunt /app/
+RUN mv ./keyhunt/keyhunt /app/keyhunt-make
 
 # Remove the keyhunt folder
 RUN rm -rf ./keyhunt/
+
+RUN mv ./keyhunt-make /app/keyhunt
 
 # Make keyhunt binary executable and test it
 RUN chmod +x keyhunt && \
