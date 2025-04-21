@@ -16,16 +16,16 @@ COPY . .
 RUN git clone https://github.com/albertobsd/keyhunt.git
 
 # Replace the /app/keyhunt.cpp with the keyhunt from the keyhunt folder
-RUN cp -f /app/keyhunt.cpp /keyhunt/keyhunt.cpp
+RUN cp -f keyhunt.cpp ./keyhunt/keyhunt.cpp
 
 # Build key hunt
-RUN cd /keyhunt && make
+RUN cd ./keyhunt && make
 
 # Copy the keyhunt binary to the app folder
-RUN cp /keyhunt/keyhunt /app/keyhunt
+RUN cp ./keyhunt/keyhunt /app/keyhunt
 
 # Remove the keyhunt folder
-RUN rm -rf /keyhunt/
+RUN rm -rf ./keyhunt/
 
 # Make keyhunt binary executable and test it
 RUN chmod +x keyhunt && \
