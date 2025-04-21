@@ -102,9 +102,13 @@ func createJobs(startRange, endRange string, address string) ([]Job, error) {
 			batchEnd = end
 		}
 
+		// Convert to hex without 0x prefix
+		startHex := current.Text(16)
+		endHex := batchEnd.Text(16)
+
 		jobs = append(jobs, Job{
-			StartRange: current.String(),
-			EndRange:   batchEnd.String(),
+			StartRange: startHex,
+			EndRange:   endHex,
 			Addresses:  []string{address},
 		})
 
