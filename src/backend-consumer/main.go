@@ -93,6 +93,9 @@ func runKeyhunt(job Job, wg *sync.WaitGroup, ch *amqp.Channel) {
 		return
 	}
 
+	// Print the output
+	fmt.Printf("Keyhunt output: %s\n", string(output))
+
 	// Check if private key was found
 	if strings.Contains(string(output), "Private Key") {
 		// Publish to found queue
