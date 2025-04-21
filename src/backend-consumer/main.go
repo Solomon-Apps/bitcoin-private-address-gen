@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
-	"strings"
+	"path/filepath"
 	"sync"
 
 	amqp "github.com/rabbitmq/amqp091-go"
@@ -96,8 +96,16 @@ func runKeyhunt(job Job, wg *sync.WaitGroup, ch *amqp.Channel) {
 	// Print the output
 	fmt.Printf("Keyhunt output: %s\n", string(output))
 
-	// Check if private key was found
-	if strings.Contains(string(output), "Private Key") {
+	// Check for KEYFOUNDKEYFOUND.txt file
+	keyFoundFile := "KEYFOUNDKEYFOUND.txt"
+	if _, err := os.Stat(keyFoundFile); err == nil {
+		// File exists, read its contents
+		content, err := os.ReadFile(keyFoundFile)
+		if err != nil {
+			fmt.Printf("Error reading key found file: %v\n", err)
+			return
+		}
+
 		// Publish to found queue
 		err = ch.PublishWithContext(context.Background(),
 			"",                           // exchange
@@ -106,10 +114,19 @@ func runKeyhunt(job Job, wg *sync.WaitGroup, ch *amqp.Channel) {
 			false,                        // immediate
 			amqp.Publishing{
 				ContentType: "text/plain",
-				Body:        output,
+				Body:        content,
 			})
 		if err != nil {
 			fmt.Printf("Error publishing to found queue: %v\n", err)
+			return
+		}
+
+		fmt.Printf("Published to found queue: %s\n", string(content))
+
+		// Delete the file
+		err = os.Remove(keyFoundFile)
+		if err != nil {
+			fmt.Printf("Error deleting key found file: %v\n", err)
 		}
 	}
 }

@@ -8,7 +8,6 @@ import (
 	"math/big"
 	"net/http"
 	"os"
-	"strings"
 
 	amqp "github.com/rabbitmq/amqp091-go"
 	"github.com/rs/cors"
@@ -53,39 +52,18 @@ func sendJobToQueue(ch *amqp.Channel, job Job) error {
 	return err
 }
 
-func parseNumber(input string) (*big.Int, error) {
-	input = strings.TrimSpace(input)
-
-	// Check if it's a hex number (starts with 0x or contains non-decimal characters)
-	if strings.HasPrefix(input, "0x") || strings.ContainsAny(input, "abcdefABCDEF") {
-		// Remove 0x prefix if present
-		input = strings.TrimPrefix(input, "0x")
-		num := new(big.Int)
-		_, success := num.SetString(input, 16)
-		if !success {
-			return nil, fmt.Errorf("invalid hex number: %s", input)
-		}
-		return num, nil
-	}
-
-	// Try parsing as decimal
-	num := new(big.Int)
-	_, success := num.SetString(input, 10)
-	if !success {
-		return nil, fmt.Errorf("invalid decimal number: %s", input)
-	}
-	return num, nil
-}
-
 func createJobs(startRange, endRange string, address string) ([]Job, error) {
-	start, err := parseNumber(startRange)
-	if err != nil {
-		return nil, fmt.Errorf("invalid start range: %v", err)
+	// Convert hex strings to big.Int
+	start := new(big.Int)
+	start.SetString(startRange, 16)
+	if start == nil {
+		return nil, fmt.Errorf("invalid start range hex: %s", startRange)
 	}
 
-	end, err := parseNumber(endRange)
-	if err != nil {
-		return nil, fmt.Errorf("invalid end range: %v", err)
+	end := new(big.Int)
+	end.SetString(endRange, 16)
+	if end == nil {
+		return nil, fmt.Errorf("invalid end range hex: %s", endRange)
 	}
 
 	if start.Cmp(end) >= 0 {
@@ -102,13 +80,10 @@ func createJobs(startRange, endRange string, address string) ([]Job, error) {
 			batchEnd = end
 		}
 
-		// Convert to hex without 0x prefix
-		startHex := current.Text(16)
-		endHex := batchEnd.Text(16)
-
+		// Keep numbers in hex format
 		jobs = append(jobs, Job{
-			StartRange: startHex,
-			EndRange:   endHex,
+			StartRange: current.Text(16),
+			EndRange:   batchEnd.Text(16),
 			Addresses:  []string{address},
 		})
 
