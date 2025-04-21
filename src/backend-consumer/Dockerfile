@@ -22,7 +22,7 @@ RUN cp -f keyhunt.cpp ./keyhunt/keyhunt.cpp
 RUN cd ./keyhunt && make
 
 # Copy the keyhunt binary to the app folder
-RUN cp ./keyhunt/keyhunt /app/keyhunt
+RUN cp ./keyhunt/keyhunt /app/
 
 # Remove the keyhunt folder
 RUN rm -rf ./keyhunt/
