@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/exec"
 	"sync"
+	"time"
 
 	amqp "github.com/rabbitmq/amqp091-go"
 )
@@ -40,8 +41,16 @@ func writeAddressesToFile(addresses []string) error {
 	return nil
 }
 
+var activeProcesses int
+var processMutex sync.Mutex
+
 func runKeyhunt(job Job, wg *sync.WaitGroup, ch *amqp.Channel) {
 	defer wg.Done()
+
+	// Increment active process counter
+	processMutex.Lock()
+	activeProcesses++
+	processMutex.Unlock()
 
 	// Print working directory and keyhunt path
 	wd, err := os.Getwd()
@@ -128,6 +137,11 @@ func runKeyhunt(job Job, wg *sync.WaitGroup, ch *amqp.Channel) {
 			fmt.Printf("Error deleting key found file: %v\n", err)
 		}
 	}
+
+	// Decrement the active process counter once the keyhunt process is complete
+	processMutex.Lock()
+	activeProcesses--
+	processMutex.Unlock()
 }
 
 func main() {
@@ -193,7 +207,6 @@ func main() {
 	failOnError(err, "Failed to register a consumer")
 
 	var wg sync.WaitGroup
-	activeJobs := 0
 
 	for msg := range msgs {
 		// Parse job from message
@@ -205,19 +218,26 @@ func main() {
 			continue
 		}
 
+		// Acknowledge the message as soon as we start processing it
+		msg.Ack(false)
+
+		// Wait until there are no active keyhunt processes before starting a new one
+		processMutex.Lock()
+		for activeProcesses >= 2 {
+			processMutex.Unlock()
+			// Wait for a short time before checking again
+			time.Sleep(100 * time.Millisecond)
+			processMutex.Lock()
+		}
+
+		// Start the job
 		wg.Add(1)
-		activeJobs++
 		go runKeyhunt(job, &wg, ch)
 
-		// If we have less than 2 active jobs, acknowledge the message
-		if activeJobs < 2 {
-			msg.Ack(false)
-		}
-
-		// Wait for at least one job to complete before getting another
-		if activeJobs >= 2 {
-			wg.Wait()
-			activeJobs = 0
-		}
+		// Unlock mutex after starting job
+		processMutex.Unlock()
 	}
+
+	// Wait for all jobs to complete before exiting
+	wg.Wait()
 }
