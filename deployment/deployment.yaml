@@ -95,7 +95,7 @@ spec:
   selector:
     matchLabels:
       app: backend-consumer
-  replicas: 10
+  replicas: 200
   strategy:
     type: RollingUpdate
     rollingUpdate:
