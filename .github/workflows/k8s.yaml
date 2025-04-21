@@ -66,7 +66,7 @@ jobs:
             ${{ vars.REGISTRY_HOST }}/bitcoin-backend-consumer:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
-          platforms: linux/arm64
+          platforms: linux/amd64
 
       - name: "Delete Bitcoin Private Address Gen Secret"
         uses: actions-hub/kubectl@master
